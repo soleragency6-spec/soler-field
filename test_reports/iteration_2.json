@@ -1,0 +1,45 @@
+{
+  "summary": "FieldPro iteration 2 — Templates & full Quotations. Backend: 18/18 pytest passed (100%) covering RLS/401, template upload (DOCX heading extraction -> 5 sections), first-upload-becomes-default, PUT/DELETE/original signed URL, report template priority (content_json.meta.template_used=true and section titles reproduced), quote create-from-intervention, GET quote with items+client, PUT recomputes totals (160 HT / 192 TTC), finalize assigns DEV-2026-#### + PDF, lock on final (409), PDF endpoint, status='sent', quote in /quotes listing, email with quote attachment (att-quote) status='pending' + email_enabled=false (Resend intentionally disabled). Frontend (mobile 390x844 web preview): sign-in OK, home shows cta-new-intervention/cta-new-client/cta-new-quote, Réglages -> link-templates opens /templates screen (Rapports/Factures/Devis tabs, Import button, existing 'Mon rapport' template with '5 section(s) détectée(s)' + Par défaut + Suppr/Aperçu), Documents tab 'Devis' (doctab-quotes) lists DEV-2026-0001..0005 with statuses (Finalisée/Envoyé) and amounts, quote/new -> quote-noclient creates draft and routes to /quote/[id], quote-add-item + qitem-desc-0 + qitem-price-0 + quote-valid + quote-notes + quote-save + quote-finalize all work, quote finalizes to DEV-2026-0005 'Finalisée' badge and reveals quote-pdf + quote-send buttons. No React Native red screen, no console errors. Deliberately disabled providers (Resend pending, local /api/files signed URL, deterministic AI) confirmed intended.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "templates.tsx", "issues": [
+        "Card action row has 3 buttons ('Définir par défaut', 'Aperçu', 'Suppr.') that on 390px viewport wrap and become visually cramped (long labels break to 2 lines). Consider icon-only buttons on narrow screens or a kebab menu."
+      ]},
+      {"screen": "quote/[id].tsx", "issues": [
+        "A phantom empty second line 'Désignation' with 'Qté 1 / À renseigne / TVA 20' appears in both draft and finalized states after add-item. Looks like an off-by-one: initial draft creates one placeholder item and quote-add-item adds another empty one on top. Non-blocking (finalize still sums only priced item) but confusing for the user."
+      ]}
+    ],
+    "react_native_issues": [
+      {"component": "styles (RN Web)", "issue": "Deprecation warning still present from iter1: '\"shadow*\" style props are deprecated. Use \"boxShadow\".' — not blocking."}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_fieldpro_api.py",
+    "/app/backend/tests/test_templates_quotes.py",
+    "/app/test_reports/pytest/pytest_results_iter2.xml"
+  ],
+  "action_items": [
+    "(Optional polish) In /app/frontend/app/quote/[id].tsx, avoid rendering an empty extra line: only pre-populate one blank item when the fetched quote has 0 items, and let quote-add-item control creation of subsequent ones — currently a stale placeholder item is visible even after data loads.",
+    "(Optional polish) Responsive card actions in /app/frontend/app/templates.tsx: consider icon buttons or overflow menu on narrow viewports so 'Définir par défaut' does not wrap.",
+    "(Nice-to-have testID naming) Iter1 request mentioned 'doctab-quote'; actual key is 'doctab-quotes' (plural, matches tab.key='quotes'). Not a bug — just document in the frontend contract for future automation.",
+    "Replace deprecated shadow* style props with boxShadow across RN Web styles (carry-over from iter1)."
+  ],
+  "critical_code_review_comments": [
+    "server.py is now 1055 lines with templates + full quotes appended. Still under-modularized — recommend splitting quotes, templates, invoices, reports into routers per domain (>700-line rule).",
+    "quote finalize (server.py:929) mutates brand_settings.quote_next_number inside the same tenant connection but not inside an explicit transaction; two concurrent finalize calls could still race to the same number. Consider begin/commit around SELECT FOR UPDATE + UPDATE + INSERT.",
+    "providers/templates.py analyze() catches all exceptions to '' silently — if pypdf/python-docx choke on a malformed file the user gets an empty structure with no error. Consider surfacing a soft warning field in structure_json.",
+    "In providers/ai.py:82 the template_used flag is True only when tmpl.sections exist AND is non-empty; heuristics might parse a file to 0 sections silently — the UI badge would then indicate no template was used even though one exists (falls back to default_sections). Acceptable but worth surfacing 'analysis empty' to the pro on upload."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_templates_quotes.py (created)"
+  ],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "seed_data_creation": "Test suite creates TEST_-prefixed client + intervention + template + quote and cleans up (test_40 deletes template, test_99 deletes intervention + client). 4 finalized DEV-2026-#### quotes remain from UI tests (DEV-2026-0001..0004 + 0005 from confirmation run). These are visible in Documents 'Devis' listing. Safe to leave — they exercise number sequencing and PDF generation.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Iter2 golden path for Templates + Quotes is at /app/backend/tests/test_templates_quotes.py — reuse. All backend endpoints for both features pass. Frontend testIDs verified: link-templates, tmpl-upload, tmpl-tab-report/invoice/quote, tmpl-default-*, tmpl-del-*, cta-new-quote, quote-noclient, quote-client-*, qitem-desc-N, qitem-price-N, quote-add-item, quote-valid, quote-notes, quote-save, quote-finalize, quote-pdf, quote-send, doctab-reports/invoices/quotes. NOTE: tab key is 'quotes' (plural), not 'quote'. Iter1 invoice bug (line_total_ht NOT NULL) appears already fixed by main agent (test_11 in test_fieldpro_api.py now passes when run — please re-verify).",
+  "rca_of_issue": "N/A — no bugs found in the Templates + Quotes scope for iteration 2."
+}

@@ -1,0 +1,63 @@
+{
+  "summary": "FieldPro end-to-end testing (backend + frontend). Ran 28 pytest cases covering auth (Supabase JWT), RLS/401 rejection, dashboard, brand, clients/interventions/events, report generate+validate+lock+PDF, invoice from intervention, services CRUD, email create/send (pending expected), admin listing, admin create-user error, and cross-role isolation. Result: 23/28 backend tests passed. One CRITICAL backend bug found in POST /api/interventions/{iid}/invoice which cascaded 4 downstream failures. Frontend smoke tested: sign-in works, dashboard renders white-label 'Martin Plomberie', tabs render, Super Admin login correctly routes to /admin and lists workspaces with Suspend toggle. New intervention flow: pick-client and interv form render, but intervention creation on the 'Nouvelle intervention' screen did not appear to navigate to field mode in our automated run (URL stayed at /intervention/new). Deliberately disabled providers (Resend pending, local storage, deterministic AI) confirmed working as designed. Note: Frontend has a deprecated style prop warning `\"shadow*\" style props are deprecated. Use \"boxShadow\"` from RN Web — non-blocking. No React Native red-screen errors detected.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "POST /api/interventions/{iid}/invoice",
+        "issue": "500 Internal Server Error - asyncpg NotNullViolationError: null value in column 'line_total_ht' of relation 'invoice_items' violates not-null constraint. Triggered when the intervention text does not match any Service in fieldpro.services (default item is created with unit_price_ht=None, then _compute_totals leaves line_total_ht=None, but the DB column is NOT NULL). This BLOCKS the entire Report -> Invoice UI path (report-create-invoice button). Reference: /app/backend/server.py:586-594 and /app/backend/server.py:531-535",
+        "priority": "CRITICAL"
+      }
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "intervention/new -> field mode navigation",
+        "issue": "After filling name/type/description and clicking data-testid=interv-start, URL stayed at /intervention/new in our automated run instead of navigating to /intervention/[id] (field mode). Could be caused by an inline validation, an intercepting client picker, or an API error. Please verify manually; may also be side effect of the invoice bug if any post-create hook is chained.",
+        "testID": "interv-start",
+        "priority": "HIGH"
+      }
+    ],
+    "integration_issues": [
+      {
+        "flow": "Report -> Invoice (report-create-invoice button)",
+        "issue": "Will fail with a backend 500 whenever the intervention description contains no words matching a Service name (default seed shows this). Users cannot progress from validated report to invoice draft.",
+        "affected_testIDs": ["report-create-invoice"]
+      }
+    ],
+    "design_issues": [],
+    "react_native_issues": [
+      {
+        "component": "styles (RN Web)",
+        "issue": "Deprecation warning in browser console: '\"shadow*\" style props are deprecated. Use \"boxShadow\".' — replace shadowColor/shadowOffset/shadowOpacity/shadowRadius with boxShadow to future-proof against RN 0.76+ web."
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_fieldpro_api.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "FIX (CRITICAL): In /app/backend/server.py invoice_from_intervention (line ~586) and/or _compute_totals (line ~525): when unit_price_ht is None, set line_total_ht=0 (or COALESCE at insert time in _save_invoice_items). Simplest patch: in _compute_totals set `it['line_total_ht'] = 0` in the None branch instead of None; OR alter the fieldpro.invoice_items schema so line_total_ht has default 0 / is nullable. Same defensive change should be applied for _save_invoice_items to pass 0 when None.",
+    "Re-run tests 11-15 after fix (they are chained on invoice_id).",
+    "Verify UI flow report -> create-invoice after backend fix.",
+    "Investigate why /intervention/new does not navigate to field mode after interv-start in automated run; add an explicit success toast/redirect and better error surfacing.",
+    "Replace deprecated shadow* style props with boxShadow across RN Web styles."
+  ],
+  "critical_code_review_comments": [
+    "server.py::invoice_from_intervention builds a fallback item {unit_price_ht: None} but the DB schema for invoice_items.line_total_ht is NOT NULL — always produces 500 for interventions with no service match. Needs defensive default.",
+    "server.py is ~840 lines and mixes many domains (clients, interventions, media, reports, invoices, quotes, emails, admin). Consider splitting into routers per domain (>700 line rule).",
+    "auth.py::current_claims does not restrict allowed algorithms tightly — accepts ES256/RS256/EdDSA. Supabase currently uses ES256; over-broad list is a small hardening concern.",
+    "storage().download_url is called in loops (e.g. report/get_intervention) — fine for local storage, but if migrated to R2 pre-sign, ensure it does not perform network calls per media."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_fieldpro_api.py (created)"
+  ],
+  "success_rate": {"backend": "82%", "frontend": "70%"},
+  "seed_data_creation": "Tests create TEST_-prefixed client/intervention/service and clean up in test_18_cleanup. Nothing else added.",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Golden-path pytest is at /app/backend/tests/test_fieldpro_api.py — reuse it. Supabase login helper is inside the file. Once the line_total_ht bug is fixed, tests 11..15 should all pass without further changes. Frontend testIDs verified working: signin-email, signin-password, signin-submit, cta-new-intervention, pick-client-* (locator prefix works). Bottom tabs are icon-only (no data-testid on tab bar in this run) — E1 may want to add tab-accueil/tab-interventions/tab-clients/tab-documents/tab-reglages testIDs for future automation.",
+  "rca_of_issue": "Reproduction: 1) Login as pro@martin-plomberie.fr 2) POST /api/clients {company: 'X'} 3) POST /api/interventions {client_id, name: 'TEST_Fuite cuisine', type: 'depannage', description: 'Fuite sous évier'} 4) POST /api/interventions/{iid}/invoice -> 500. Root cause: fieldpro.services is empty for a fresh workspace, so the matching loop yields 0 items. The code then inserts a default item {unit_price_ht: None, ...}. _compute_totals leaves line_total_ht=None for that item. _save_invoice_items then executes INSERT INTO fieldpro.invoice_items (..., line_total_ht, ...) VALUES (..., NULL, ...) which violates the NOT NULL constraint. Backend traceback confirmed in /var/log/supervisor/backend.err.log. Mitigation: default line_total_ht to 0 (or NULL-ify the column) — small backend patch."
+}

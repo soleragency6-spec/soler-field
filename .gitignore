@@ -1,0 +1,17 @@
+# Local secrets and deployment credentials
+backend/.env
+backend/_seed.py
+backend/_apply_migration.py
+frontend/.env
+
+# Generated/runtime files
+__pycache__/
+*.py[cod]
+.pytest_cache/
+backend/_storage/
+frontend/node_modules/
+frontend/dist/
+.DS_Store
+
+# Local tooling metadata
+.emergent/
