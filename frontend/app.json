@@ -46,7 +46,8 @@
       "@react-native-vector-icons/material-design-icons"
     ],
     "experiments": {
-      "typedRoutes": true
+      "typedRoutes": true,
+      "baseUrl": "/soler-field"
     }
   }
 }
