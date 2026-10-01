@@ -59,7 +59,7 @@ async def _ensure_workspace(user_id: str, email: str | None) -> tuple[str | None
         )
         await conn.execute(
             """insert into fieldpro.brand_settings (workspace_id, company_name, app_name, email)
-               values ($1,$2,'FieldPro',$3) on conflict (workspace_id) do nothing""",
+               values ($1,$2,'SOLER',$3) on conflict (workspace_id) do nothing""",
             ws, name, email,
         )
         await conn.execute(

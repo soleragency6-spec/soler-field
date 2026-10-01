@@ -21,11 +21,11 @@ import { STATUS_TONE, statusLabel } from "@/src/lib/format";
 
 export function useAccent() {
   const { primaryColor } = useApp();
-  return primaryColor || "#1D4ED8";
+  return primaryColor || "#E21B2D";
 }
 
 export function AppIcon(props: { name: any; size?: number; color?: string; style?: any }) {
-  return <Icon name={props.name} size={props.size ?? 22} color={props.color ?? "#111827"} style={props.style} />;
+  return <Icon name={props.name} size={props.size ?? 22} color={props.color ?? "#FFFFFF"} style={props.style} />;
 }
 
 export function Button({

@@ -45,7 +45,7 @@ export default function SignIn() {
           <Text style={s.agency}>SOLER AGENCY</Text>
           <View style={s.redRule} />
         </View>
-        <Text style={s.title}>SOLER FIELD</Text>
+        <Text style={s.title}>SOLER</Text>
         <Text style={s.subtitle}>Pilotez vos interventions, vos rapports et vos factures depuis un seul espace.</Text>
 
         <View style={s.form}>

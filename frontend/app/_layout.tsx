@@ -31,7 +31,7 @@ function RootNav() {
   if (initializing) {
     return (
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#FFFFFF" }}>
-        <ActivityIndicator size="large" color="#1D4ED8" />
+        <ActivityIndicator size="large" color="#E21B2D" />
         <Text style={{ marginTop: 12, color: "#6B7280", fontWeight: "600" }}>Chargement…</Text>
       </View>
     );

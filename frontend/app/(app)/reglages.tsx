@@ -9,7 +9,7 @@ import { makeStyles, useTheme } from "@/src/theme";
 import { useApp } from "@/src/context/AppContext";
 import { Button, Card, Field, ScreenHeader, AppIcon, useAccent } from "@/src/components/ui";
 
-const SWATCHES = ["#1D4ED8", "#0EA5E9", "#059669", "#DC2626", "#EA580C", "#7C3AED", "#0F172A", "#B45309"];
+const SWATCHES = ["#E21B2D", "#B51224", "#7A0F1B", "#3B1117", "#1A1A1A", "#0B0B0B"];
 
 export default function Reglages() {
   const insets = useSafeAreaInsets();

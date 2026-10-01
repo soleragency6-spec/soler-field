@@ -53,7 +53,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const me = meQuery.data ?? null;
   const brand = me?.brand ?? null;
-  const primaryColor = brand?.primary_color || "#1D4ED8";
+  const primaryColor = brand?.primary_color || "#E21B2D";
 
   const signOut = async () => {
     await supabase.auth.signOut();

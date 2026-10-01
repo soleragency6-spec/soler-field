@@ -1049,7 +1049,7 @@ async def admin_create_user(body: AdminUserIn, p: Principal = Depends(require_ad
         name = body.company_name or body.email.split("@")[0]
         ws = await conn.fetchval("insert into fieldpro.workspaces (name) values ($1) returning id", name)
         await conn.execute("insert into fieldpro.workspace_members (workspace_id,user_id,role) values ($1,$2,'owner')", ws, uid)
-        await conn.execute("insert into fieldpro.brand_settings (workspace_id,company_name,app_name,email) values ($1,$2,'FieldPro',$3) on conflict do nothing", ws, name, body.email)
+        await conn.execute("insert into fieldpro.brand_settings (workspace_id,company_name,app_name,email,primary_color,secondary_color) values ($1,$2,'SOLER',$3,'#E21B2D','#0B0B0B') on conflict do nothing", ws, name, body.email)
         await conn.execute("insert into fieldpro.subscriptions (workspace_id) values ($1) on conflict do nothing", ws)
     return {"user_id": uid, "workspace_id": str(ws), "email": body.email}
 
